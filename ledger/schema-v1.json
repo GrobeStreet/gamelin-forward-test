@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/GrobeStreet/gamelin-forward-test/blob/main/ledger/schema-v1.json",
+  "title": "GAMELIN Canon v1.0 Pre-Race Ledger Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "race",
+    "timestamps",
+    "sources",
+    "methodology",
+    "field",
+    "decision",
+    "integrity"
+  ],
+  "properties": {
+    "schema_version": {"const": "ledger-v1"},
+    "record_id": {"type": "string", "minLength": 1},
+    "race": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["track_code", "track_name", "race_date", "race_number", "scheduled_post_local", "surface", "distance", "race_class", "purse", "active_field_size"],
+      "properties": {
+        "track_code": {"const": "DMR"},
+        "track_name": {"const": "Del Mar"},
+        "race_date": {"type": "string", "format": "date"},
+        "race_number": {"type": "integer", "minimum": 1},
+        "external_race_id": {"type": ["string", "null"]},
+        "scheduled_post_local": {"type": "string"},
+        "surface": {"type": "string"},
+        "distance": {"type": "string"},
+        "race_class": {"type": "string"},
+        "purse": {"type": ["number", "null"], "minimum": 0},
+        "active_field_size": {"type": "integer", "minimum": 0}
+      }
+    },
+    "timestamps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["odds_observed_at_utc", "record_generated_at_utc"],
+      "properties": {
+        "odds_observed_at_utc": {"type": "string", "format": "date-time"},
+        "changes_observed_at_utc": {"type": ["string", "null"], "format": "date-time"},
+        "record_generated_at_utc": {"type": "string", "format": "date-time"},
+        "source_mtp": {"type": ["integer", "null"]}
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["card_url", "changes_url", "odds_url", "pp_source_id"],
+      "properties": {
+        "card_url": {"type": "string"},
+        "changes_url": {"type": "string"},
+        "odds_url": {"type": "string"},
+        "pp_source_id": {"type": "string"},
+        "card_snapshot_sha256": {"type": ["string", "null"]},
+        "changes_snapshot_sha256": {"type": ["string", "null"]},
+        "odds_snapshot_sha256": {"type": ["string", "null"]},
+        "feature_input_sha256": {"type": ["string", "null"]}
+      }
+    },
+    "methodology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_version", "methodology_hash", "input_mode"],
+      "properties": {
+        "model_version": {"const": "GAMELIN-CANON-v1.0"},
+        "methodology_hash": {"type": "string", "minLength": 1},
+        "input_mode": {"const": "full-canon"}
+      }
+    },
+    "field": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "program_no",
+          "runner_name",
+          "scratched",
+          "decision_odds_decimal",
+          "market_prob",
+          "market_pct",
+          "class_pct",
+          "speed_pct",
+          "agreement",
+          "model_logit",
+          "model_prob",
+          "edge_pp",
+          "ev_decision",
+          "conviction_raw",
+          "conviction_score",
+          "conviction_band",
+          "candidate_eligible"
+        ],
+        "properties": {
+          "program_no": {"type": "string"},
+          "runner_name": {"type": "string"},
+          "runner_id": {"type": ["string", "null"]},
+          "scratched": {"type": "boolean"},
+          "decision_odds_display": {"type": ["string", "null"]},
+          "decision_odds_decimal": {"type": ["number", "null"], "exclusiveMinimum": 1},
+          "market_prob": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "market_pct": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "class_pct": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "speed_pct": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "agreement": {"type": ["integer", "null"], "minimum": 0, "maximum": 3},
+          "model_logit": {"type": ["number", "null"]},
+          "model_prob": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "edge_pp": {"type": ["number", "null"]},
+          "ev_decision": {"type": ["number", "null"]},
+          "conviction_raw": {"type": ["number", "null"]},
+          "conviction_score": {"type": ["integer", "null"], "minimum": 0, "maximum": 100},
+          "conviction_band": {"enum": ["ELITE", "STRONG", "BETTABLE", "2/3 SIGNAL", "LOW", "UNAVAILABLE"]},
+          "candidate_eligible": {"type": "boolean"}
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "projected_winner_program_no", "conviction_candidate_program_no", "selected_bet_program_no", "stake_units", "reason_codes"],
+      "properties": {
+        "state": {"enum": ["BET", "PASS", "EXCLUDED"]},
+        "projected_winner_program_no": {"type": ["string", "null"]},
+        "conviction_candidate_program_no": {"type": ["string", "null"]},
+        "selected_bet_program_no": {"type": ["string", "null"]},
+        "stake_units": {"type": "number", "enum": [0, 1]},
+        "reason_codes": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["race_state_sha256", "record_sha256_before_commit"],
+      "properties": {
+        "race_state_sha256": {"type": "string"},
+        "record_sha256_before_commit": {"type": "string"},
+        "git_commit_sha": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
