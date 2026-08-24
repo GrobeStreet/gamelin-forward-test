@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/GrobeStreet/gamelin-forward-test/blob/main/settlements/schema-v1.json",
+  "title": "GAMELIN Canon v1.0 Settlement Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "race_id",
+    "settled_at_utc",
+    "official_result_source",
+    "race_status",
+    "field_results",
+    "decision_settlement"
+  ],
+  "properties": {
+    "schema_version": {"const": "settlement-v1"},
+    "record_id": {"type": "string", "minLength": 1},
+    "race_id": {"type": "string", "minLength": 1},
+    "settled_at_utc": {"type": "string", "format": "date-time"},
+    "official_result_source": {"type": "string"},
+    "official_result_snapshot_sha256": {"type": ["string", "null"]},
+    "race_status": {"enum": ["official", "cancelled", "no_contest"]},
+    "field_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["program_no", "runner_name", "finish_position", "won", "scratched", "official_final_odds_decimal", "final_market_prob"],
+        "properties": {
+          "program_no": {"type": "string"},
+          "runner_name": {"type": "string"},
+          "finish_position": {"type": ["integer", "null"], "minimum": 1},
+          "won": {"type": "boolean"},
+          "scratched": {"type": "boolean"},
+          "official_final_odds_display": {"type": ["string", "null"]},
+          "official_final_odds_decimal": {"type": ["number", "null"], "exclusiveMinimum": 1},
+          "final_market_prob": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+        }
+      }
+    },
+    "decision_settlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pre_race_state", "selected_bet_program_no", "settlement_status", "stake_units", "official_win_payoff_per_2", "units_returned", "pnl_units"],
+      "properties": {
+        "pre_race_state": {"enum": ["BET", "PASS", "EXCLUDED"]},
+        "selected_bet_program_no": {"type": ["string", "null"]},
+        "settlement_status": {"enum": ["settled_win", "settled_loss", "no_bet", "void_scratch", "void_cancelled", "dead_heat"]},
+        "stake_units": {"type": "number", "enum": [0, 1]},
+        "official_win_payoff_per_2": {"type": ["number", "null"], "minimum": 0},
+        "units_returned": {"type": "number", "minimum": 0},
+        "pnl_units": {"type": "number"},
+        "finish_position": {"type": ["integer", "null"], "minimum": 1},
+        "won": {"type": ["boolean", "null"]},
+        "decision_odds_decimal": {"type": ["number", "null"], "exclusiveMinimum": 1},
+        "official_final_odds_decimal": {"type": ["number", "null"], "exclusiveMinimum": 1},
+        "model_prob": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "market_prob_decision": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "market_prob_final": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "brier_contrib": {"type": ["number", "null"], "minimum": 0},
+        "market_brier_contrib": {"type": ["number", "null"], "minimum": 0},
+        "logloss_contrib": {"type": ["number", "null"], "minimum": 0},
+        "market_logloss_contrib": {"type": ["number", "null"], "minimum": 0},
+        "mbm_prob_gap": {"type": ["number", "null"]},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "integrity": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "pre_race_git_commit_sha": {"type": ["string", "null"]},
+        "settlement_record_sha256": {"type": ["string", "null"]},
+        "settlement_git_commit_sha": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
