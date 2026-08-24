@@ -1,8 +1,8 @@
 # GAMELIN Model Lineage
 
-Status: **P0 canonicalization working record**
+Status: **P0 canonicalization record — Canon v1.0 model selected**
 
-This document preserves the known model generations that appeared in GAMELIN research/specification artifacts. Its purpose is to prevent silent model drift and make the final canonical choice explainable.
+This document preserves the known model generations that appeared in GAMELIN research/specification artifacts. Its purpose is to prevent silent model drift and make the canonical choice explainable.
 
 ## Generation A — early fitted three-factor specification
 
@@ -25,9 +25,11 @@ Associated product framing:
 - explicit race-type confidence gate
 - PASS in weaker race classes/conditions
 
-Disposition: **historical / not canonical unless reproduced and selected during P0 reconciliation.**
+Disposition: **historical / superseded for Race 001.**
 
-## Generation B — later three-factor fitted specification
+Reason: this was a real fitted stage of the project, but later final-engine work explicitly superseded it with the optimized Conviction-era model now matched in production.
+
+## Generation B — intermediate three-factor fitted specification
 
 Documented form:
 
@@ -40,72 +42,99 @@ score = 1.738 * market_pct
 
 Associated handoff notes describe this as walk-forward validated on 6,467 U.S. races with a 1,730-race holdout.
 
-Disposition: **historical / not canonical unless reproduced and selected during P0 reconciliation.**
+Disposition: **historical / superseded for Race 001.**
 
-## Generation C — production v7.0 Conviction-era picker
+Reason: this coefficient set appears in an intermediate handoff and is not the formula used by the final June 2 Conviction sync or current production v7.0 implementation.
 
-The current production site identifies itself as:
+## Generation C — final Conviction engine / Canon v1.0
+
+The final June 2 engine sync explicitly identifies a **Canon Engine** and says it supersedes the earlier v6 agreement-only framing. Current production identifies itself as:
 
 ```text
 GAMELIN Evidence Engine · v7.0 Conviction Index
 ```
 
-Current production weight family:
-
-```text
-marketPct  = 1.838
-classPct   = 0.582
-speedPct   = 0.065
-agreement  = 0.318
-premium    = 0.409
-midpurse   = -0.062
-```
-
-The corresponding research handoff gives the full logistic specification as:
+The production source and final engine sync match on the winner model:
 
 ```text
 logit = 1.838 * market_pct
       + 0.582 * class_pct
       + 0.065 * speed_pct
-      + 0.318 * (agree / 3)
+      + 0.318 * (agreement / 3)
       + 0.409 * premium
       - 0.062 * midpurse
       + 0.018 * turf
       - 3.454
 
-win_prob = softmax(logit across the field)
+win_prob = softmax(logit across the active field)
 ```
 
-Conviction Index documented with this generation:
+Conviction Index:
 
 ```text
-CONVICTION = (mean(z_market, z_class, z_speed)
-              + min(z_market, z_class, z_speed))
-             * (1 + 0.5 * agree)
+CONVICTION = (mean(z_market,z_class,z_speed)
+              + min(z_market,z_class,z_speed))
+             * (1 + 0.5 * agreement)
 ```
 
-Research notes characterize conviction as the selective-betting layer rather than evidence that the raw winner picker dramatically outperforms the market.
+Production absolute Conviction bands:
 
-Disposition: **current production candidate for Canon v1.0, not yet frozen.**
+```text
+raw >= 3.25                         -> ELITE, multiplier 1.0
+raw >= 2.20                         -> STRONG, multiplier 0.8
+raw >= 1.10                         -> BETTABLE, multiplier 0.5
+agreement >= 2 and raw >= 0.25      -> 2/3 SIGNAL, multiplier 0.5
+otherwise                           -> LOW, multiplier 0
+```
 
-## Decision-policy drift that must be resolved
+Production also excludes runners below 5% de-vigged market probability from the primary Conviction win-bet candidate set.
+
+Disposition: **SELECTED AND FROZEN AS `GAMELIN-CANON-v1.0` MODEL COMPONENT.**
+
+The complete frozen analytical specification is in `CANONICAL_MODEL.md`.
+
+## P0 finding: the production `ev` name is semantically wrong
+
+Current production assigns:
+
+```text
+ev = model_prob - market_prob
+```
+
+That is a **probability edge**, not monetary expected value. Canon therefore renames it:
+
+```text
+edge_pp = model_prob - market_prob
+```
+
+True decision-price EV is separately defined as:
+
+```text
+ev_decision = model_prob * decimal_odds - 1
+```
+
+This is a terminology/correctness reconciliation, not a newly fitted model change. The registered forward-test gate must use the correct quantity names and cannot call probability edge monetary EV.
+
+## Decision-policy drift resolved
 
 Two incompatible product rules appeared historically:
 
-1. **PASS doctrine:** always provide a race read / likely winner, but do not recommend money when the gate fails.
+1. **PASS doctrine:** always provide a race read / likely winner, but do not recommend money when the evidence/price gate fails.
 2. **Always-bet doctrine:** always name a winner and always recommend at least one wager even when no positive-value opportunity exists.
 
-The current production implementation already supports explicit `PASS` / `$0` outcomes while still surfacing the likely winner. P0 therefore treats the PASS doctrine as the leading candidate for Canon v1.0, subject to final reconciliation.
+For the registered evidence record, P0 resolves this in favor of:
 
-## P0 selection rule
+> **Always preserve the race read. Never force a primary wager.**
 
-Canon v1.0 will not be chosen because it is newest or because it produces the most attractive historical result. It will be chosen only after:
+The always-bet specification is historical and superseded for the public forward test.
 
-- the production implementation is matched exactly to a written specification;
-- the source research supporting each term is identified;
-- leakage safety is confirmed;
-- decision-gate semantics are fixed;
-- historical claims tied to superseded formulas are separated from Canon claims;
-- one immutable methodology representation is generated and hashed.
+## Remaining registration work
 
-Until that happens, **Race 001 remains locked.**
+The model itself is now selected. Race 001 remains locked because the following still must be frozen:
+
+- exact forward-test input/data source;
+- exact decision-time/freshness protocol;
+- final primary BET/PASS price gate using true `ev_decision`;
+- canonical corpus/claim wording;
+- final methodology artifact + SHA-256;
+- completed registered preregistration.
