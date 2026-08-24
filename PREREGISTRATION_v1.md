@@ -2,9 +2,9 @@
 
 **STATUS: DRAFT — NOT REGISTERED — RACE 001 LOCKED**
 
-**Registered:** pending Canon v1.0 freeze
+**Registered:** pending final data/timing freeze
 
-**Model version at kickoff:** pending
+**Model version at kickoff:** `GAMELIN-CANON-v1.0`
 
 **methodology_hash:** pending
 
@@ -14,128 +14,264 @@ This document is the honesty contract for the first public forward test. It must
 
 ## 1. What is being tested
 
-Whether GAMELIN's frozen, gated selections, generated before post under a fixed decision rule, add information beyond the pari-mutuel market and produce economically meaningful results under real settlement.
+Whether `GAMELIN-CANON-v1.0` gated WIN selections, generated before post under a fixed rule, add information beyond the U.S. pari-mutuel market and produce positive flat-stake results after real tote settlement.
 
-This is a **forward test**, not a backtest. Historical results motivate the design but do not count toward this record.
+This is a **forward test**, not a backtest. Historical results motivate the frozen model and thresholds but do not count toward this record.
+
+The test intentionally separates three questions:
+
+1. Are Canon probabilities calibrated?
+2. Do Canon probabilities add information beyond the market?
+3. Do the fixed BET decisions return positive flat-stake ROI at official settlement?
 
 ## 2. Scope
 
-Working scope carried forward from the existing preregistration design:
-
 - Bet type: **WIN only** for the primary record.
-- Market: U.S. pari-mutuel thoroughbred win pools.
-- Initial circuit: **Del Mar Thoroughbred Club**, unless P0 source/data review requires an amendment before registration.
+- Market: **U.S. pari-mutuel thoroughbred win pools**.
+- Initial circuit: **Del Mar Thoroughbred Club**.
 - Headline stake: **1.00 unit flat per qualifying BET**.
+- PASS stake: `0.00` units.
+- At most **one primary BET per race**.
 - No exotics in this ledger.
 - No variable discretionary staking in the headline record.
 
-## 3. Decision rule
+## 3. Canon model
 
-**PENDING CANONICALIZATION.**
+The frozen analytical model is defined in `CANONICAL_MODEL.md`.
 
-The historical preregistration proposed a deterministic BET gate requiring all of:
+Key distinction:
 
-1. qualifying conviction tier;
-2. model-vs-market edge at or above a fixed threshold;
-3. non-negative expected value at decision odds.
+```text
+projected_winner     = runner with highest model_prob
+conviction_candidate = highest conviction_raw among eligible candidates
+```
 
-P0 must verify that this gate is exactly compatible with the production v7.0 Conviction engine and freeze the final thresholds before registration.
+They may be different horses.
 
-Until then, **no race may be counted.**
+The public ledger records both the race ranking and the action decision.
 
-Canonical policy direction:
+## 4. Probability and price quantities
 
-- GAMELIN may always produce a projected winner/ranking.
-- A wager is recommended only when the registered gate passes.
-- If the gate fails, the decision is **PASS** and is retained in the record.
+For each active runner with observed decimal odds:
 
-## 4. Valid-race definition
+```text
+raw_implied_prob_i = 1 / decimal_odds_i
+market_prob_i      = raw_implied_prob_i / sum_j(raw_implied_prob_j)
+edge_pp_i          = model_prob_i - market_prob_i
+ev_decision_i      = model_prob_i * decimal_odds_i - 1
+```
 
-Final eligibility criteria will be frozen before registration. At minimum, an eligible race must have:
+`edge_pp` is a probability edge. `ev_decision` is expected profit per 1 unit at the observed decision price.
 
-- correct circuit/race identity;
-- at least five active runners unless Canon explicitly defines otherwise;
-- complete required pre-race model inputs under the registered data mode;
-- a market snapshot with an auditable observation timestamp;
-- a GAMELIN decision timestamp strictly before official post/off time under the registered logging convention.
+The production consumer variable historically named `ev` but equal to `model_prob - market_prob` is **not** treated as monetary EV in this registered test.
 
-Any excluded or missed race must be recorded with a reason rather than silently removed.
+## 5. Primary BET/PASS gate — frozen except for data-timestamp mechanics
 
-## 5. Logging protocol
+The primary candidate pool contains active full-model runners satisfying:
 
-1. **Pre-race record committed before post.**
+```text
+market_prob >= 0.05
+```
+
+Choose the runner with the highest `conviction_raw` from that pool.
+
+That runner is a **BET** if and only if all of the following hold:
+
+1. **Full Canon input mode is valid** for the race under §6.
+2. The runner is `high_conviction = true` under the absolute Canon bands:
+   - `conviction_raw >= 3.25`, or
+   - `conviction_raw >= 2.20`, or
+   - `conviction_raw >= 1.10`, or
+   - `agreement >= 2 AND conviction_raw >= 0.25`.
+3. `edge_pp >= +0.02`.
+4. `ev_decision >= 0` at the registered decision odds.
+
+Otherwise the race's primary action is **PASS**.
+
+No human discretion may upgrade a PASS to BET.
+
+A race can still have a projected winner and full ranking when the primary action is PASS.
+
+### Why the 2-point edge floor remains
+
+The earlier preregistration design declared a `+0.02` model-vs-market probability floor before any live result was seen. Canon retains that pre-existing threshold rather than optimizing it after forward outcomes.
+
+### Why true EV is also required
+
+Positive de-vigged probability edge does not by itself prove that the displayed price clears pari-mutuel takeout/overround. The separate `ev_decision >= 0` test prevents the ledger from calling a horse a value WIN bet when the observed price is still economically negative under the model.
+
+## 6. Valid-race definition — model/data requirements frozen
+
+A race is model-eligible only if all of the following are true at the registered decision timestamp:
+
+- Del Mar U.S. thoroughbred win-pool race;
+- at least **5 active runners**;
+- race identity and official scheduled post are resolved;
+- scratches known at the decision snapshot are applied;
+- observed odds are available for **every active runner**;
+- ClassRating is available for **every active runner**;
+- last-three-prior SpeedFigure average is available for **every active runner** under the frozen feature parser;
+- no forbidden/post-race field is used;
+- the probability field normalizes successfully;
+- the pre-race record is committed strictly before official off/post under the final timing convention.
+
+A race failing the full-model requirements is **EXCLUDED**, not silently dropped. The exclusion and reason are logged.
+
+Production market-only or partial-PP fallbacks do not qualify for the headline Canon v1.0 forward ledger.
+
+## 7. Decision timestamp and odds freshness
+
+**PENDING FINAL FREEZE BEFORE REGISTRATION.**
+
+This is the remaining material open item.
+
+Before Race 001, P0 must freeze:
+
+- the exact source of the decision odds;
+- the target minutes-to-post or deterministic snapshot-selection rule;
+- the maximum allowable odds age;
+- how delayed/late post times are handled;
+- how a race is logged if no valid snapshot arrives in the allowed window.
+
+The rule must be deterministic and must not allow the operator to wait for a more favorable price after seeing the first valid snapshot.
+
+Until this section is complete, **Race 001 is forbidden.**
+
+## 8. Logging protocol
+
+1. **Pre-race record committed before post/off.**
 2. Every record carries `model_version` and `methodology_hash`.
 3. The pre-race block is immutable after commitment.
 4. Official settlement is appended afterward in a separate settlement record.
-5. Missing cards/races are logged as gaps with reasons.
-6. BET and PASS decisions are both retained.
+5. Missing cards/races are logged as gaps or exclusions with reasons.
+6. BET, PASS, and EXCLUDED states are all retained.
+7. The projected winner/ranking is retained even when the action is PASS.
+8. No result is deleted because it is unfavorable.
 
-## 6. Settlement
+## 9. Settlement
 
-- Settle WIN bets from official final pari-mutuel win payoffs.
+- Settle qualifying WIN BETs from the **official final pari-mutuel win payoff**.
 - Takeout is therefore embedded in the observed payoff.
 - Scratched selections are void and marked as such.
 - Cancelled/non-run races are void and marked.
 - Dead heats follow official settlement.
+- A decision-price EV estimate is never substituted for actual settled P&L.
 
-## 7. Metrics
+## 10. Primary metrics
 
-The primary evidence suite will include:
+Report from the start:
 
 - probability calibration / reliability;
-- Brier score and Brier skill versus the de-vigged market at the registered decision timestamp;
-- a market-relative probability comparison / Model-Beat-Market measure;
-- flat-stake net ROI with bootstrap confidence interval;
+- Brier score;
+- Brier skill versus the de-vigged market baseline at the registered decision timestamp;
+- log loss vs. the same market baseline;
+- Model-Beat-Market (`model_prob - final_market_prob`) summary where final-market probability can be reconstructed consistently;
+- BET count, PASS count, EXCLUDED count, and coverage rate.
+
+Report with appropriate sample-size caveat:
+
+- flat-stake net ROI;
+- bootstrap 95% CI on per-bet P&L using 10,000 resamples;
 - maximum drawdown;
-- longest losing streak;
-- BET rate and PASS rate;
-- data-freshness / timestamp integrity reporting.
+- longest losing streak.
 
-Baselines must be declared before Race 001 and may include market probability at the same timestamp and blind-favorite behavior.
+## 11. Baselines — frozen
 
-## 8. Pre-declared segments
+The registered comparison set is:
 
-The earlier design proposed only the following pre-registered cuts:
+1. **De-vigged market probability** from the same registered decision snapshot.
+2. **Blind market favorite** at the same decision snapshot for winner/hit-rate and settlement comparisons where applicable.
+3. **0% net ROI** as the economic breakeven line after real tote settlement.
 
-- conviction tier;
-- odds bands;
-- field-size bands;
-- surface.
+No new baseline may replace a losing registered baseline after results are known.
 
-P0 will verify/freeze the exact bins before registration. Any later slice is exploratory and must be labeled as such.
+## 12. Pre-declared segments — frozen
 
-## 9. Versioning
+Registered descriptive cuts are limited to:
 
-Every prediction carries a model version and methodology hash. If the model, thresholds, required inputs, race eligibility, settlement rule, or primary metrics change, a new preregistration version is required. Prior records are never regraded under the new method.
+### Conviction band
+- ELITE
+- STRONG
+- BETTABLE
+- 2/3 SIGNAL
 
-## 10. Evaluation point
+### Decision odds
+- `<= 2/1`
+- `> 2/1 to 5/1`
+- `> 5/1 to 10/1`
+- `> 10/1`
 
-The existing design sets the first formal public readout at the later of:
+### Field size
+- `5–7`
+- `8–10`
+- `11+`
 
-- **200 qualifying BETs**, or
-- **60 calendar days**.
+### Surface
+- dirt
+- turf
+
+Any other slice is exploratory and must be labeled **EXPLORATORY / NOT PRE-REGISTERED**.
+
+## 13. Model versioning
+
+Every prediction carries `model_version` and `methodology_hash`.
+
+Any post-registration change to:
+
+- model formula or features;
+- Conviction formula/bands;
+- 5% candidate floor;
+- +2pp edge floor;
+- true-EV threshold;
+- candidate-selection rule;
+- required input mode;
+- decision-time/freshness rule;
+- race eligibility;
+- settlement;
+- primary metrics or registered segments;
+
+requires a new preregistration version.
+
+Prior records are never regraded under the new method.
+
+## 14. Evaluation point
+
+The first formal public readout occurs at the later of:
+
+- **200 settled qualifying BETs**, or
+- **60 calendar days after Race 001**.
 
 Interim statistics may be displayed but must be labeled insufficient for the registered ROI conclusion.
 
-## 11. Falsification
+Calibration and process-integrity metrics may be reported from the start.
+
+## 15. Falsification
 
 A failed result is publishable evidence.
 
-If the registered test fails to show improvement over the declared market baseline and/or the ROI confidence interval does not support a positive-return claim, GAMELIN will not relabel or remove the result. The result belongs in the permanent record and, where appropriate, the `nulls/` directory.
+At the first formal readout:
 
-## 12. Registration gate
+- if Brier skill vs. the registered market baseline is `<= 0`, Canon v1.0 has not demonstrated probability improvement over the market on this test;
+- if the ROI bootstrap 95% CI includes or lies below `0`, positive ROI is not demonstrated at the registered threshold.
 
-This file becomes active only when all of the following are complete:
+These findings must be published as observed. They may motivate a future v2 but may not be erased or retroactively re-gated.
 
-- [ ] `CANONICAL_MODEL.md` frozen
-- [ ] final decision thresholds frozen
-- [ ] exact input/data mode frozen
-- [ ] corpus/claim reconciliation complete
+## 16. Registration gate
+
+- [x] `CANONICAL_MODEL.md` model component frozen
+- [x] Canon decision candidate and conviction thresholds frozen
+- [x] probability-edge vs. true-EV semantics reconciled
+- [x] full-model input requirements frozen
+- [x] corpus/claim reconciliation completed for public headline wording
+- [x] baseline definitions frozen
+- [x] registered segment bins frozen
+- [ ] exact decision odds source frozen
+- [ ] exact decision-time / odds-freshness rule frozen
+- [ ] ledger file schema finalized against this preregistration
+- [ ] settlement schema finalized against this preregistration
 - [ ] methodology artifact generated
 - [ ] SHA-256 methodology hash inserted here
 - [ ] registration date/time inserted here
-- [ ] baseline definitions frozen
-- [ ] ledger schema committed
-- [ ] settlement schema committed
+- [ ] final preregistration committed before Race 001
 
 **Until every box is complete: Race 001 is forbidden.**
